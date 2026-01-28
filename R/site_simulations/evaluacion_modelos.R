@@ -5,17 +5,16 @@ library(medfate)
 library(broom)
 
 
-
 # extraigo los datos simulados
-setwd("C:/Users/MSI Modern/Documents/PlantWaterPools/data-raw/site_output")
+files <- list.files(
+  path = "data/site_output",
+  pattern = "\\.rds$",
+  full.names = TRUE
+)
 
-files <- list.files(path="C:/Users/MSI Modern/Documents/PlantWaterPools/data-raw/site_output", pattern=".rds", all.files=FALSE,
-                    full.names=FALSE, recursive = TRUE)%>% 
-  lapply(readRDS)
+files <- lapply(files, readRDS)
 
-setwd("C:/Users/MSI Modern/Documents/PlantWaterPools")
-
-target <- list.files(path="C:/Users/MSI Modern/Documents/PlantWaterPools/data-raw/site_output", pattern=".rds", all.files=FALSE,
+target <- list.files(path="data/site_output", pattern=".rds", all.files=FALSE,
                      full.names=FALSE, recursive = TRUE)
 
 names(files) <- target
@@ -56,6 +55,13 @@ data <- purrr::map(data, ~distinct(.x))
 
 data <- bind_rows(data)
 
+data$lai <- round(data$lai, 3) 
+
+data <- data %>%
+  group_by(plot, cohorte) %>%
+  mutate(lai =mean(lai)) %>%
+  distinct()
+
 output_et <- merge(output_et, data)
 
 # ¿valores 0 de LAI y ET?
@@ -65,16 +71,17 @@ output_et <- filter(output_et, et > 0)
 output_et <- mutate(output_et, et=et/lai)
 
 
-# ahora saco los datos originales
-setwd("C:/Users/MSI Modern/Documents/PlantWaterPools/data-raw/site_input")
+# ahora saco los input
 
-files <- list.files(path="C:/Users/MSI Modern/Documents/PlantWaterPools/data-raw/site_input", pattern=".rds", all.files=FALSE,
-                    full.names=FALSE, recursive = TRUE)%>% 
-  lapply(readRDS)
+files <- list.files(
+  path = "data-raw/site_input",
+  pattern = "\\.rds$",
+  full.names = TRUE
+)
 
-setwd("C:/Users/MSI Modern/Documents/PlantWaterPools")
+files <- lapply(files, readRDS)
 
-target <- list.files(path="C:/Users/MSI Modern/Documents/PlantWaterPools/data-raw/site_input", pattern=".rds", all.files=FALSE,
+target <- list.files(path="data-raw/site_input", pattern=".rds", all.files=FALSE,
                      full.names=FALSE, recursive = TRUE)
 
 names(files) <- target
@@ -189,6 +196,7 @@ data_daily <- et %>%
   ungroup()
 
 data_daily <- filter(data_daily, plot =="pu")
+
 
 ggplot(data_daily, aes(x = doy)) +
   geom_line(aes(y = et_mean, color = "Observado"), size = 1) +
